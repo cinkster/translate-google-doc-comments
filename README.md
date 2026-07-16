@@ -12,13 +12,24 @@ A Manifest V3 browser extension that translates Google Docs comments in place. I
 - Keeps the OpenAI API key out of the Google Docs page context.
 - Uses `gpt-5.6-luna` by default, with Terra and Sol available in settings.
 
+## Download
+
+Version 0.3.0 is available as an unsigned developer preview:
+
+- [Download the Chrome extension](https://github.com/cinkster/translate-google-doc-comments/releases/download/v0.3.0/docs-comment-translator-chrome-0.3.0.zip)
+- [Download the full test kit](https://github.com/cinkster/translate-google-doc-comments/releases/download/v0.3.0/docs-comment-translator-test-kit-0.3.0.zip)
+- [Download SHA-256 checksums](https://github.com/cinkster/translate-google-doc-comments/releases/download/v0.3.0/SHA256SUMS.txt)
+
+See [all GitHub releases](https://github.com/cinkster/translate-google-doc-comments/releases), browse the [version tags](https://github.com/cinkster/translate-google-doc-comments/tags), or read [DISTRIBUTION.md](DISTRIBUTION.md) for the complete installation and testing guide.
+
 ## Chrome
 
-1. Open `chrome://extensions`.
-2. Enable **Developer mode**.
-3. Choose **Load unpacked** and select the `extension` directory.
-4. Open a Google Docs document and choose the extension toolbar icon.
-5. Save an OpenAI API key for OpenAI translation, or leave it empty to use Chrome's on-device translation on supported desktop versions.
+1. Download and extract the Chrome extension ZIP above. If you cloned the repository instead, use the `extension` directory.
+2. Open `chrome://extensions`.
+3. Enable **Developer mode**.
+4. Choose **Load unpacked** and select the extracted folder containing `manifest.json`.
+5. Open a Google Docs document and choose the extension toolbar icon.
+6. Save an OpenAI API key for OpenAI translation, or leave it empty to use Chrome's on-device translation on supported desktop versions.
 
 ## Safari
 
