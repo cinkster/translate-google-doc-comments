@@ -1,0 +1,9 @@
+{
+  "name": "docs-comment-translator",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Safari and Chrome extension that translates Google Docs comments.",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  }
+}

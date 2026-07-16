@@ -1,0 +1,39 @@
+.dct-translating {
+  opacity: 0.58;
+  transition: opacity 140ms ease;
+}
+
+.dct-translated-source {
+  display: block;
+  margin-top: 7px;
+  padding: 7px 9px 8px;
+  border: 1px solid #c7d7cc;
+  border-left: 3px solid #16794b;
+  border-radius: 6px;
+  background: #f7fbf8;
+  color: #202124;
+  cursor: help;
+  overflow-wrap: anywhere;
+}
+
+.dct-translation-error {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: #b3261e;
+  text-underline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dct-translating {
+    transition: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .dct-translated-source {
+    border-color: #456353;
+    border-left-color: #55b783;
+    background: #1f2923;
+    color: #f1f3f4;
+  }
+}

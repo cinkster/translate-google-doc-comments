@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test document - Google Docs Replica</title>
+  <link rel="stylesheet" href="google-docs-replica.css?v=1">
+  <link rel="stylesheet" href="../extension/content.css?v=12">
+  <script src="google-docs-replica.js?v=2"></script>
+</head>
+<body>
+  <div class="docs-app">
+    <header class="docs-header">
+      <div class="title-row">
+        <div class="docs-logo" aria-hidden="true"><span></span><i></i><i></i><i></i></div>
+        <div class="document-identity">
+          <div class="title-line">
+            <span class="document-title">Test document</span>
+            <button class="icon-button star" type="button" aria-label="Star">☆</button>
+            <button class="icon-button" type="button" aria-label="Move">▣</button>
+            <span class="saved" aria-label="Saved to Drive">☁</span>
+          </div>
+          <nav class="menu-row" aria-label="Application menu">
+            <button type="button">File</button>
+            <button type="button">Edit</button>
+            <button type="button">View</button>
+            <button type="button">Insert</button>
+            <button type="button">Format</button>
+            <button type="button">Tools</button>
+            <button type="button">Extensions</button>
+            <button type="button">Help</button>
+          </nav>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button large-icon" type="button" aria-label="Version history">◷</button>
+          <button class="icon-button large-icon" type="button" aria-label="Show all comments">▤</button>
+          <button class="share-button" type="button"><span aria-hidden="true">▣</span> Share <b>⌄</b></button>
+          <button class="upgrade-button" type="button">Upgrade</button>
+          <span class="gemini" aria-label="Gemini">✦</span>
+          <span class="avatar account-avatar" aria-label="Account">EU</span>
+        </div>
+      </div>
+
+      <div class="toolbar-row" role="toolbar" aria-label="Main toolbar">
+        <button class="tool-icon" type="button" aria-label="Search menus">⌕</button>
+        <button class="tool-icon" type="button" aria-label="Undo">↶</button>
+        <button class="tool-icon" type="button" aria-label="Redo">↷</button>
+        <button class="tool-icon" type="button" aria-label="Print">▣</button>
+        <button class="tool-icon divider-after" type="button" aria-label="Paint format">⚑</button>
+        <button class="tool-menu compact" type="button">100% <span>⌄</span></button>
+        <button class="tool-menu styles" type="button">Normal text <span>⌄</span></button>
+        <button class="tool-menu font" type="button">Arial <span>⌄</span></button>
+        <button class="tool-icon" type="button" aria-label="Decrease font size">−</button>
+        <button class="font-size" type="button">11</button>
+        <button class="tool-icon" type="button" aria-label="Increase font size">+</button>
+        <button class="tool-icon text-tool" type="button" aria-label="Bold"><b>B</b></button>
+        <button class="tool-icon text-tool" type="button" aria-label="Italic"><i>I</i></button>
+        <button class="tool-icon text-tool" type="button" aria-label="Underline"><u>U</u></button>
+        <button class="tool-icon text-tool" type="button" aria-label="Text color"><u>A</u></button>
+        <button class="tool-icon" type="button" aria-label="Insert link">↗</button>
+        <button class="tool-icon" type="button" aria-label="Add comment">⊞</button>
+        <button class="tool-icon" type="button" aria-label="Insert image">▧</button>
+        <button class="tool-icon" type="button" aria-label="Align">≡</button>
+        <button class="tool-icon" type="button" aria-label="Line spacing">↕</button>
+        <button class="tool-icon" type="button" aria-label="Checklist">✓</button>
+        <button class="tool-icon" type="button" aria-label="Bulleted list">☷</button>
+        <button class="tool-icon" type="button" aria-label="Numbered list">☰</button>
+        <span class="toolbar-spacer"></span>
+        <button class="tool-icon" type="button" aria-label="Proofread">A✓</button>
+        <button class="tool-icon" type="button" aria-label="Editing mode">✎</button>
+        <button class="tool-icon" type="button" aria-label="Hide menus">⌃</button>
+      </div>
+      <div class="ruler" aria-hidden="true">
+        <span style="left: 250px">1</span><span style="left: 345px">2</span><span style="left: 440px">3</span>
+        <span style="left: 535px">4</span><span style="left: 630px">5</span><span style="left: 725px">6</span>
+        <span style="left: 820px">7</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="tabs-panel" aria-label="Document tabs">
+        <div class="tabs-heading"><button class="back-button" type="button" aria-label="Hide tabs">←</button></div>
+        <div class="tabs-title-row"><h2>Document tabs</h2><button type="button" aria-label="Add tab">+</button></div>
+        <div class="tab-item" aria-current="page">
+          <span class="tab-page-icon">▤</span><span>Tab 1</span><span class="comment-count">2</span><button type="button" aria-label="Tab options">⋮</button>
+        </div>
+        <p>Headings you add to the document will appear here.</p>
+      </aside>
+
+      <section class="editor-area" aria-label="Document editor">
+        <div class="vertical-ruler" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+        <article class="document-page">
+          <p>This is sample document content.</p>
+        </article>
+      </section>
+
+      <div class="comment-tools" role="toolbar" aria-label="Comment tools">
+        <button type="button" aria-label="Add comment">⊞</button>
+        <button type="button" aria-label="Add emoji reaction">☺</button>
+        <button type="button" aria-label="Suggest edits">▱</button>
+      </div>
+
+      <aside class="comments-panel" aria-label="Comments">
+        <section class="comment-thread active-thread" aria-label="Comments dialog. Open comment. Author Example User. 2 replies. 0 new replies.">
+          <article class="comment-entry">
+            <div class="comment-meta">
+              <span class="avatar">EU</span>
+              <div><strong>Example User</strong><time>10:57 AM Today</time></div>
+              <button class="comment-menu" type="button" aria-label="More options">⋮</button>
+            </div>
+            <div class="docos-replyview-body link-comment" dir="auto">https://example.com/reference</div>
+          </article>
+
+          <article class="comment-entry reply-entry">
+            <div class="comment-meta">
+              <span class="avatar">EU</span>
+              <div><strong>Example User</strong><time>10:58 AM Today</time></div>
+              <button class="comment-menu" type="button" aria-label="More options">⋮</button>
+            </div>
+            <div class="docos-replyview-body" dir="auto">公園のセンサーは気温と湿度を測定し、データを地域の公開ダッシュボードに送信します。担当者はこの情報を使って散水の時間を調整します。</div>
+          </article>
+
+          <article class="comment-entry reply-entry">
+            <div class="comment-meta">
+              <span class="avatar">EU</span>
+              <div><strong>Example User</strong><time>10:58 AM Today</time></div>
+              <button class="comment-menu" type="button" aria-label="More options">⋮</button>
+            </div>
+            <div class="docos-replyview-body" dir="auto">Yes I agree completely</div>
+          </article>
+        </section>
+
+        <section class="comment-thread" id="secondThread" aria-label="Comments dialog. Open comment. Author Example User. 0 replies. 0 new replies.">
+          <article class="comment-entry">
+            <div class="comment-meta">
+              <span class="avatar">EU</span>
+              <div><strong>Example User</strong><time>10:59 AM Today</time></div>
+              <button class="comment-menu" type="button" aria-label="More options">⋮</button>
+            </div>
+            <div class="docos-replyview-body clipped-comment" dir="auto">サンプル企業がお送りする「技術速報」。今回は、地域の図書館が展開する本の貸し出しサービスの事例をご紹介します。各施設の端末をネットワークでつなぎ、「必要なときに、どこでも借りて返せる」体験を実現しています。</div>
+            <button class="show-more" type="button">Show more</button>
+          </article>
+        </section>
+      </aside>
+
+      <aside class="apps-rail" aria-label="Google apps">
+        <button class="calendar-app" type="button" aria-label="Calendar">31</button>
+        <button class="keep-app" type="button" aria-label="Keep">●</button>
+        <button class="tasks-app" type="button" aria-label="Tasks">✓</button>
+        <button class="contacts-app" type="button" aria-label="Contacts">●</button>
+        <button class="maps-app" type="button" aria-label="Maps">◆</button>
+        <span></span>
+        <button type="button" aria-label="Get add-ons">+</button>
+        <button type="button" aria-label="Hide side panel">›</button>
+      </aside>
+    </main>
+  </div>
+  <script src="../extension/local-translator.js?v=1"></script>
+  <script src="../extension/content-lib.js?v=9"></script>
+  <script src="../extension/content.js?v=13"></script>
+</body>
+</html>

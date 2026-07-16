@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs Comment Translator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <header class="app-header">
+      <img src="icons/icon-48.png" width="32" height="32" alt="">
+      <div>
+        <h1>Comment Translator</h1>
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="connectionText">Checking translation...</span>
+        </div>
+      </div>
+    </header>
+
+    <form id="settingsForm">
+      <label class="field">
+        <span>Translate to</span>
+        <select id="targetLanguage">
+          <option>English</option>
+          <option>Spanish</option>
+          <option>French</option>
+          <option>German</option>
+          <option>Italian</option>
+          <option>Portuguese</option>
+          <option>Japanese</option>
+          <option>Korean</option>
+          <option>Simplified Chinese</option>
+          <option>Traditional Chinese</option>
+          <option>Dutch</option>
+          <option>Arabic</option>
+          <option value="__custom__">Custom...</option>
+        </select>
+      </label>
+
+      <label class="field hidden" id="customLanguageField">
+        <span>Language</span>
+        <input id="customLanguage" type="text" maxlength="80" autocomplete="off">
+      </label>
+
+      <label class="field">
+        <span>Model</span>
+        <select id="model">
+          <option value="gpt-5.6-luna">GPT-5.6 Luna</option>
+          <option value="gpt-5.6-terra">GPT-5.6 Terra</option>
+          <option value="gpt-5.6-sol">GPT-5.6 Sol</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>OpenAI API key (optional)</span>
+        <div class="key-row">
+          <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
+          <button class="quiet-button" id="removeKey" type="button">Remove</button>
+        </div>
+      </label>
+
+      <label class="toggle-row">
+        <span>Translate automatically</span>
+        <input id="autoTranslate" type="checkbox" checked>
+        <span class="toggle" aria-hidden="true"></span>
+      </label>
+
+      <div class="actions">
+        <button class="secondary-button" id="translateNow" type="button">Translate now</button>
+        <button class="primary-button" type="submit">Save</button>
+      </div>
+    </form>
+
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+  </main>
+  <script src="local-translator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

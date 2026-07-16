@@ -1,0 +1,245 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 334px;
+  min-height: 430px;
+  background: #f6f7f8;
+  color: #202124;
+}
+
+main {
+  padding: 18px;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dfe3e7;
+}
+
+.app-header img {
+  flex: 0 0 32px;
+}
+
+h1 {
+  margin: 0 0 3px;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9aa0a6;
+}
+
+.connection-status.connected {
+  color: #246b45;
+}
+
+.connection-status.connected .status-dot {
+  background: #18864b;
+}
+
+form {
+  display: grid;
+  gap: 13px;
+  padding-top: 15px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  color: #454b52;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="password"],
+select {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #c7cdd3;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: #ffffff;
+  color: #202124;
+  font: inherit;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid #1a73e8;
+  outline-offset: 1px;
+}
+
+.key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.quiet-button,
+.secondary-button,
+.primary-button {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.quiet-button {
+  border: 1px solid #c7cdd3;
+  background: transparent;
+  color: #5f6368;
+}
+
+.toggle-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  color: #30343a;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  position: absolute;
+  right: 0;
+  width: 38px;
+  height: 22px;
+  margin: 0;
+  opacity: 0;
+}
+
+.toggle {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  background: #9aa0a6;
+  transition: background 140ms ease;
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 24%);
+  transition: transform 140ms ease;
+}
+
+.toggle-row input:checked + .toggle {
+  background: #16794b;
+}
+
+.toggle-row input:checked + .toggle::after {
+  transform: translateX(16px);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.secondary-button {
+  border: 1px solid #b9c0c7;
+  background: #ffffff;
+  color: #30343a;
+}
+
+.primary-button {
+  border: 1px solid #146c43;
+  background: #16794b;
+  color: #ffffff;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.message {
+  min-height: 16px;
+  margin: 10px 0 0;
+  color: #5f6368;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.message.error {
+  color: #a12a23;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #202124;
+    color: #f1f3f4;
+  }
+
+  .app-header {
+    border-color: #454a50;
+  }
+
+  .field,
+  .toggle-row {
+    color: #e2e5e9;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  select,
+  .secondary-button {
+    border-color: #5f666d;
+    background: #2b2e31;
+    color: #f1f3f4;
+  }
+
+  .quiet-button {
+    border-color: #5f666d;
+    color: #d2d6da;
+  }
+}
+
