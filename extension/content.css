@@ -28,12 +28,3 @@
     transition: none;
   }
 }
-
-@media (prefers-color-scheme: dark) {
-  .dct-translated-source {
-    border-color: #456353;
-    border-left-color: #55b783;
-    background: #1f2923;
-    color: #f1f3f4;
-  }
-}
