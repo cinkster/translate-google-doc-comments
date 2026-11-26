@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Docs Comment Translator",
   "version": "0.3.0",
-  "description": "Translate Google Docs comments into your preferred language.",
+  "description": "Translate Google Docs comments and Google Meet in-call messages into your preferred language.",
   "permissions": [
     "storage"
   ],
@@ -12,7 +12,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://docs.google.com/document/*"
+        "https://docs.google.com/document/*",
+        "https://meet.google.com/*"
       ],
       "js": [
         "local-translator.js",

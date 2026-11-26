@@ -5,6 +5,8 @@
     ? global.browser
     : global.chrome;
   const lib = global.DCTContentLib;
+  const isMeet = global.location.hostname === "meet.google.com";
+  const findBodies = isMeet ? lib.findMeetMessageBodies : lib.findCommentBodies;
   const localTranslator = global.DCTLocalTranslator;
   const inFlight = new Set();
   const translatedBodies = new Map();
@@ -162,7 +164,7 @@
 
     const pending = [];
     let pendingCharacters = 0;
-    for (const body of lib.findCommentBodies(document)) {
+    for (const body of findBodies(document)) {
       if (translatedBodyIsCurrent(body)) {
         continue;
       }
@@ -244,6 +246,15 @@
 
   function mutationsNeedScan(mutations) {
     return mutations.some((mutation) => {
+      if (isMeet) {
+        const target = mutation.target.nodeType === Node.TEXT_NODE
+          ? mutation.target.parentElement
+          : mutation.target;
+        return target?.closest(lib.MEET_BODY_SELECTOR) || Array.from(mutation.addedNodes).some(
+          (node) => node.nodeType === Node.ELEMENT_NODE &&
+            (node.matches(lib.MEET_BODY_SELECTOR) || node.querySelector(lib.MEET_BODY_SELECTOR))
+        );
+      }
       if (mutation.type === "characterData") {
         return true;
       }

@@ -23,6 +23,9 @@
     "[role='paragraph']"
   ].join(",");
 
+  // Meet puts the pin button alongside the message, under the same message ID.
+  const MEET_BODY_SELECTOR = "[aria-live='polite'] div[data-message-id] [jsname='dTKtvb'] > div";
+
   const BLOCKED_TAGS = new Set([
     "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "TIME", "IMG", "SVG"
   ]);
@@ -111,9 +114,13 @@
 
   global.DCTContentLib = {
     FALLBACK_BODY_SELECTOR,
+    MEET_BODY_SELECTOR,
     PRIMARY_BODY_SELECTOR,
     THREAD_SELECTOR,
     findCommentBodies,
+    findMeetMessageBodies(root) {
+      return Array.from(root.querySelectorAll(MEET_BODY_SELECTOR)).filter(isCandidate);
+    },
     fingerprint,
     normalizeText
   };

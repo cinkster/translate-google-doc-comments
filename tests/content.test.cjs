@@ -7,6 +7,54 @@ const { chromium } = require("playwright");
 const extensionRoot = path.join(__dirname, "../extension");
 const chromeExecutable = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
+async function loadContentScript(page) {
+  await page.addStyleTag({ path: path.join(extensionRoot, "content.css") });
+  await page.addScriptTag({ path: path.join(extensionRoot, "local-translator.js") });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content-lib.js") });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+}
+
+function mockOpenAI() {
+  const listeners = [];
+  window.__translationRequests = [];
+  window.chrome = {
+    runtime: {
+      onMessage: {
+        addListener(listener) {
+          listeners.push(listener);
+        }
+      },
+      async sendMessage(message) {
+        if (message.type === "GET_PUBLIC_SETTINGS") {
+          return {
+            ok: true,
+            configured: true,
+            provider: "openai",
+            settings: {
+              targetLanguage: "English",
+              model: "gpt-5.6-luna",
+              autoTranslate: window.__autoTranslate ?? true
+            }
+          };
+        }
+        if (message.type === "TRANSLATE_COMMENTS") {
+          window.__translationRequests.push(message);
+          return {
+            ok: true,
+            targetLanguage: "English",
+            translations: Object.fromEntries(message.texts.map(({ id, text }) => [
+              id,
+              /^[\x00-\x7F\s]+$/.test(text) ? null : `English translation: ${text}`
+            ]))
+          };
+        }
+        return { ok: false };
+      }
+    }
+  };
+  window.__extensionListeners = listeners;
+}
+
 test("translates existing and dynamically rendered Google Docs comments", {
   skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
 }, async () => {
@@ -17,46 +65,7 @@ test("translates existing and dynamically rendered Google Docs comments", {
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
 
-    await page.addInitScript(() => {
-      const listeners = [];
-      window.__translationRequests = [];
-      window.chrome = {
-        runtime: {
-          onMessage: {
-            addListener(listener) {
-              listeners.push(listener);
-            }
-          },
-          async sendMessage(message) {
-            if (message.type === "GET_PUBLIC_SETTINGS") {
-              return {
-                ok: true,
-                configured: true,
-                provider: "openai",
-                settings: {
-                  targetLanguage: "English",
-                  model: "gpt-5.6-luna",
-                  autoTranslate: true
-                }
-              };
-            }
-            if (message.type === "TRANSLATE_COMMENTS") {
-              window.__translationRequests.push(message);
-              return {
-                ok: true,
-                targetLanguage: "English",
-                translations: Object.fromEntries(message.texts.map(({ id, text }) => [
-                  id,
-                  /^[\x00-\x7F\s]+$/.test(text) ? null : `English translation: ${text}`
-                ]))
-              };
-            }
-            return { ok: false };
-          }
-        }
-      };
-      window.__extensionListeners = listeners;
-    });
+    await page.addInitScript(mockOpenAI);
 
     const fixtureHtml = `
       <!doctype html>
@@ -75,10 +84,7 @@ test("translates existing and dynamically rendered Google Docs comments", {
       </html>
     `;
     await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(fixtureHtml)}`);
-    await page.addStyleTag({ path: path.join(extensionRoot, "content.css") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "local-translator.js") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "content-lib.js") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+    await loadContentScript(page);
 
     await page.waitForFunction(() => document.querySelectorAll(".dct-translated-source").length === 2);
     assert.equal(await page.locator(".dct-translation").count(), 0);
@@ -112,6 +118,59 @@ test("translates existing and dynamically rendered Google Docs comments", {
     await page.waitForFunction(() => window.__translationRequests.length >= 3);
     assert.equal(await page.locator(".dct-translated-source").count(), 3);
     assert.equal(await page.locator("section").first().locator(".dct-translated-source").count(), 1);
+  } finally {
+    await browser.close();
+  }
+});
+
+test("translates only Meet chat bodies, including arriving messages", {
+  skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
+}, async () => {
+  const browser = await chromium.launch({ executablePath: chromeExecutable, headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.addInitScript(mockOpenAI);
+    await page.route("**/*", (route) => route.fulfill({
+      path: path.join(__dirname, "meet-chat.html"),
+      contentType: "text/html"
+    }));
+    await page.goto("https://meet.google.com/test-call");
+    await loadContentScript(page);
+
+    const translated = page.locator(".dct-translated-source");
+    await translated.waitFor();
+    assert.equal(await translated.textContent(), "English translation: これは日本語");
+    assert.equal(await translated.getAttribute("title"), "Original: これは日本語");
+    assert.deepEqual(await page.evaluate(() => window.__translationRequests.flatMap(
+      (request) => request.texts.map((item) => item.text)
+    )), ["Here is a comment in English", "これは日本語"]);
+    assert.equal(await page.getByRole("button", { name: "Pin message" }).count(), 2);
+    assert.equal(await page.getByRole("textbox").inputValue(), "下書き");
+
+    // Let the initial batch drain before testing the mutation observer.
+    await page.waitForTimeout(900);
+    await page.evaluate(() => {
+      const row = document.createElement("div");
+      row.dataset.messageId = "third";
+      row.innerHTML = '<div jsname="dTKtvb"><div>次のメッセージ</div></div>';
+      document.querySelector(".beTDc").append(row);
+    });
+    const arriving = page.locator("[data-message-id='third'] .dct-translated-source");
+    await arriving.waitFor();
+    assert.equal(await arriving.textContent(), "English translation: 次のメッセージ");
+    assert.equal(await page.evaluate(() => window.__translationRequests.length), 2);
+
+    await page.evaluate(() => {
+      window.__autoTranslate = false;
+      window.__extensionListeners[0]({ type: "SETTINGS_UPDATED" }, null, () => {});
+    });
+    assert.equal(await translated.count(), 0);
+    assert.equal(await page.getByText("これは日本語", { exact: true }).count(), 1);
+    await page.evaluate(() => new Promise((done) => {
+      window.__extensionListeners[0]({ type: "TRANSLATE_NOW" }, null, done);
+    }));
+    assert.equal(await translated.count(), 2);
+    assert.equal(await page.evaluate(() => window.__translationRequests.at(-1).force), true);
   } finally {
     await browser.close();
   }
@@ -205,10 +264,7 @@ test("uses Chrome on-device translation when no OpenAI key is saved", {
       </html>
     `;
     await page.goto(`data:text/html;charset=utf-8,${encodeURIComponent(fixtureHtml)}`);
-    await page.addStyleTag({ path: path.join(extensionRoot, "content.css") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "local-translator.js") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "content-lib.js") });
-    await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+    await loadContentScript(page);
 
     await page.waitForFunction(() => document.querySelectorAll(".dct-translated-source").length === 1);
     assert.match(await page.locator(".docos-replyview-body").first().textContent(), /Local English translation/);
