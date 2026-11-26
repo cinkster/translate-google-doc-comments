@@ -33,22 +33,22 @@
     }
   }
 
-  function releaseTranslatedBody(body, restoreOriginal) {
+  function releaseTranslatedBody(body) {
     const state = translatedBodies.get(body);
     if (!state) {
       return;
     }
 
     translatedBodies.delete(body);
+    if (state.output !== body) {
+      state.output.remove();
+      return;
+    }
     body.classList.remove("dct-translated-source");
     delete body.dataset.dctSourceHash;
     restoreTitle(body, state);
 
-    if (
-      restoreOriginal &&
-      body.isConnected &&
-      lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)
-    ) {
+    if (lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)) {
       body.textContent = state.originalText;
     }
   }
@@ -56,7 +56,7 @@
   function restoreOriginalComments() {
     clearTimeout(scanTimer);
     for (const body of Array.from(translatedBodies.keys())) {
-      releaseTranslatedBody(body, true);
+      releaseTranslatedBody(body);
     }
     for (const body of document.querySelectorAll("[data-dct-skipped-hash], [data-dct-error-hash]")) {
       delete body.dataset.dctSkippedHash;
@@ -68,17 +68,15 @@
     inFlight.clear();
   }
 
-  function translatedBodyIsCurrent(body) {
-    const state = translatedBodies.get(body);
-    if (!state) {
-      return false;
+  function releaseStaleTranslations() {
+    for (const [body, state] of translatedBodies) {
+      const inline = state.output === body;
+      const expected = inline ? state.translation : state.originalText;
+      if (!body.isConnected || (!inline && state.output.previousElementSibling !== body) ||
+          lib.normalizeText(body.textContent) !== lib.normalizeText(expected)) {
+        releaseTranslatedBody(body);
+      }
     }
-    if (lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)) {
-      return true;
-    }
-
-    releaseTranslatedBody(body, false);
-    return false;
   }
 
   function clearStaleStatus(body, hash) {
@@ -104,11 +102,18 @@
     }
 
     delete body.dataset.dctSkippedHash;
+    // Keep the page's original links and event handlers in place.
+    const output = body.querySelector("a[href]") ? document.createElement("span") : body;
+    if (output !== body) {
+      output.classList.add("dct-translation");
+      body.after(output);
+    }
     const originalTitle = body.getAttribute("title") || "";
     const hoverOriginal = originalText.length > 2000
       ? `${originalText.slice(0, 2000)}...`
       : originalText;
     const state = {
+      output,
       originalText,
       translation,
       hadTitle: body.hasAttribute("title"),
@@ -116,10 +121,10 @@
     };
 
     translatedBodies.set(body, state);
-    body.classList.add("dct-translated-source");
-    body.dataset.dctSourceHash = hash;
-    body.setAttribute("title", `Original: ${hoverOriginal}`);
-    body.textContent = translation;
+    output.classList.add("dct-translated-source");
+    output.dataset.dctSourceHash = hash;
+    output.setAttribute("title", `Original: ${hoverOriginal}`);
+    output.textContent = translation;
   }
 
   function renderError(body, hash, message) {
@@ -138,6 +143,7 @@
   }
 
   async function scan(manualBodies) {
+    releaseStaleTranslations();
     const force = Boolean(manualBodies);
     const settingsResponse = await loadSettings().catch(() => null);
     if (!settingsResponse || !settingsResponse.ok) {
@@ -148,12 +154,6 @@
     }
 
     const provider = settingsResponse.provider || (settingsResponse.configured ? "openai" : "on-device");
-    for (const body of Array.from(translatedBodies.keys())) {
-      if (!body.isConnected) {
-        translatedBodies.delete(body);
-      }
-    }
-
     const targetLanguage = settingsResponse.settings.targetLanguage;
     if (provider === "on-device" && (!localTranslator || !localTranslator.supports(targetLanguage))) {
       return;
@@ -178,7 +178,7 @@
     const pending = [];
     let pendingCharacters = 0;
     for (const body of bodies) {
-      if (!body.isConnected || translatedBodyIsCurrent(body)) {
+      if (!body.isConnected || translatedBodies.has(body)) {
         continue;
       }
 
@@ -224,22 +224,24 @@
     for (const item of pending) {
       inFlight.delete(item.hash);
     }
+    const current = pending.filter(({ body, text }) =>
+      body.isConnected && !translatedBodies.has(body) && lib.normalizeText(body.textContent) === text);
 
     if (!response.ok) {
       if (response.error && response.error.code === "MISSING_API_KEY") {
-        for (const item of pending) {
+        for (const item of current) {
           clearBodyStatus(item.body);
         }
         return;
       }
       const message = response.error && response.error.message || "Translation failed.";
-      for (const item of pending) {
+      for (const item of current) {
         renderError(item.body, item.hash, message);
       }
       return;
     }
 
-    for (const item of pending) {
+    for (const item of current) {
       const translation = response.translations[item.id];
       renderTranslation(
         item.body,
@@ -260,6 +262,9 @@
   function mutationsNeedScan(mutations) {
     return mutations.some((mutation) => {
       if (isMeet) {
+        if (Array.from(mutation.removedNodes).some((node) => translatedBodies.has(node))) {
+          return true;
+        }
         const target = mutation.target.nodeType === Node.TEXT_NODE
           ? mutation.target.parentElement
           : mutation.target;

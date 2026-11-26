@@ -123,18 +123,38 @@ test("translates existing and dynamically rendered Google Docs comments", {
   }
 });
 
+async function openMeetFixture(browser) {
+  const page = await browser.newPage();
+  await page.addInitScript(mockOpenAI);
+  await page.route("**/*", (route) => route.fulfill({
+    path: path.join(__dirname, "meet-chat.html"),
+    contentType: "text/html"
+  }));
+  await page.goto("https://meet.google.com/test-call");
+  return page;
+}
+
+async function holdNextResponse(page, type) {
+  await page.evaluate((type) => {
+    const runtime = window.chrome.runtime;
+    const send = runtime.sendMessage;
+    delete window.__releaseResponse;
+    runtime.sendMessage = async (message) => {
+      if (message.type !== type) return send(message);
+      runtime.sendMessage = send;
+      const response = await send(message);
+      await new Promise((resolve) => { window.__releaseResponse = resolve; });
+      return response;
+    };
+  }, type);
+}
+
 test("translates only Meet chat bodies, including arriving messages", {
   skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
 }, async () => {
   const browser = await chromium.launch({ executablePath: chromeExecutable, headless: true });
   try {
-    const page = await browser.newPage();
-    await page.addInitScript(mockOpenAI);
-    await page.route("**/*", (route) => route.fulfill({
-      path: path.join(__dirname, "meet-chat.html"),
-      contentType: "text/html"
-    }));
-    await page.goto("https://meet.google.com/test-call");
+    const page = await openMeetFixture(browser);
     await loadContentScript(page);
 
     const translated = page.locator(".dct-translated-source");
@@ -188,6 +208,52 @@ test("translates only Meet chat bodies, including arriving messages", {
   } finally {
     await browser.close();
   }
+});
+
+test("preserves Meet message links during translation and restoration", {
+  skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
+}, async (t) => {
+  const browser = await chromium.launch({ executablePath: chromeExecutable, headless: true });
+  t.after(() => browser.close());
+  const page = await openMeetFixture(browser);
+  const row = page.locator("div[data-message-id='second']");
+  const body = row.locator("[jsname='dTKtvb'] > div").first();
+  await body.evaluate((node) => {
+    const link = document.createElement("a");
+    link.href = "https://example.org/report";
+    link.textContent = "報告書";
+    window.originalLink = link;
+    node.replaceChildren("資料はこちら ", link);
+  });
+  await loadContentScript(page);
+  const translation = row.locator(".dct-translated-source");
+  await translation.waitFor();
+  assert.equal(await translation.textContent(), "English translation: 資料はこちら 報告書");
+  const link = row.getByRole("link", { name: "報告書" });
+  assert.equal(await link.count(), 1);
+  assert.equal(await link.getAttribute("href"), "https://example.org/report");
+  assert.equal(await link.evaluate((node) => node === window.originalLink), true);
+
+  await holdNextResponse(page, "TRANSLATE_COMMENTS");
+  await body.evaluate((node) => { node.firstChild.textContent = "前の資料 "; });
+  await page.waitForFunction(() => Boolean(window.__releaseResponse));
+  await body.evaluate((node) => { node.firstChild.textContent = "詳細はこちら "; });
+  await page.getByText("English translation: 詳細はこちら 報告書", { exact: true }).waitFor();
+  await page.evaluate(() => window.__releaseResponse());
+  assert.equal(await translation.count(), 1);
+  await page.evaluate(() => {
+    window.__autoTranslate = false;
+    window.__extensionListeners[0]({ type: "SETTINGS_UPDATED" }, null, () => {});
+  });
+  assert.equal(await translation.count(), 0);
+  assert.equal(await body.textContent(), "詳細はこちら 報告書");
+  assert.equal(await link.evaluate((node) => node === window.originalLink), true);
+  await page.evaluate(() => new Promise((done) => {
+    window.__extensionListeners[0]({ type: "TRANSLATE_NOW" }, null, done);
+  }));
+  await translation.waitFor();
+  await body.evaluate((node) => node.remove());
+  await translation.waitFor({ state: "detached" });
 });
 
 test("uses Chrome on-device translation when no OpenAI key is saved", {

@@ -4,7 +4,7 @@ A Manifest V3 browser extension that translates Google Docs comments and Google 
 
 ## Features
 
-- Replaces each translatable comment and reply in place, frames the translated text, and keeps the original available on hover.
+- Shows translations in place with the original text available on hover. Messages with links keep the original above the translation so the links stay clickable.
 - Defaults to English and supports common languages plus a custom target.
 - Uses Chrome's on-device Translator API when no OpenAI key is saved.
 - Automatically detects new Docs comments and replies, and new messages in the open Meet chat panel.
