@@ -14,7 +14,7 @@ A Manifest V3 browser extension that translates Google Docs comments and Google 
 
 ## Download
 
-For Meet support, load the `extension` folder from this checkout. The published 0.3.0 preview supports Google Docs.
+For Google Docs and Meet support in Chrome, follow the [Chrome installation steps](#chrome). The downloads listed here are for the Google Docs 0.3.0 preview.
 
 - [Download the Chrome extension](https://github.com/cinkster/translate-google-doc-comments/releases/download/v0.3.0/docs-comment-translator-chrome-0.3.0.zip)
 - [Download the full test kit](https://github.com/cinkster/translate-google-doc-comments/releases/download/v0.3.0/docs-comment-translator-test-kit-0.3.0.zip)
@@ -24,12 +24,17 @@ See [all GitHub releases](https://github.com/cinkster/translate-google-doc-comme
 
 ## Chrome
 
-1. Download and extract the Chrome extension ZIP above. If you cloned the repository instead, use the `extension` directory.
-2. Open `chrome://extensions`.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked** and select the extracted folder containing `manifest.json`.
-5. Open a Google Docs document or the **In-call messages** panel in a Google Meet call, then choose the extension toolbar icon.
-6. Save an OpenAI API key for OpenAI translation, or leave it empty to use Chrome's on-device translation on supported desktop versions.
+1. Use your checkout of this branch, or choose **Code** → **Download ZIP** on the branch's GitHub page and extract the source.
+2. Open `chrome://extensions` and enable **Developer mode**. Choose **Load unpacked** and select the [extension folder](extension/) that contains `manifest.json`.
+3. Open the extension popup. Choose a language under **Translate to**, then choose **Save**. To use OpenAI, enter an API key before saving. When no API key is saved, supported desktop versions of Chrome can translate on-device.
+
+If Chrome already loads the extension from your checkout, update the checkout and choose **Reload** on the extension card. Open a fresh Docs or Meet tab to use the updated version.
+
+## Use Google Meet chat
+
+In a Meet call, choose **Chat with everyone** to open **In-call messages**. With **Translate automatically** enabled, the extension translates messages already in the panel and new messages as they arrive. For example, with English selected, `図書館は午後3時に開きます。` appears as “The library opens at 3 p.m.”
+
+For manual translation, turn off **Translate automatically** in the popup and choose **Save**. Choose **Translate now** to translate the messages currently in the panel. Choose it again to include later messages.
 
 ## Safari
 
