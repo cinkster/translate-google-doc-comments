@@ -256,6 +256,34 @@ test("preserves Meet message links during translation and restoration", {
   await translation.waitFor({ state: "detached" });
 });
 
+test("ignores late Meet responses after automatic translation is disabled", {
+  skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
+}, async (t) => {
+  const browser = await chromium.launch({ executablePath: chromeExecutable, headless: true });
+  t.after(() => browser.close());
+  for (const type of ["GET_PUBLIC_SETTINGS", "TRANSLATE_COMMENTS"]) {
+    await t.test(type, async () => {
+      const page = await openMeetFixture(browser);
+      await page.clock.install();
+      await holdNextResponse(page, type);
+      await loadContentScript(page);
+      await page.clock.runFor(500);
+      await page.waitForFunction(() => Boolean(window.__releaseResponse));
+      await page.evaluate(() => {
+        window.__autoTranslate = false;
+        window.__extensionListeners[0]({ type: "SETTINGS_UPDATED" }, null, () => {});
+        window.__releaseResponse();
+      });
+      await page.clock.runFor(1000);
+      assert.equal(await page.locator(".dct-translated-source, .dct-translating").count(), 0);
+      assert.equal(await page.getByText("これは日本語", { exact: true }).count(), 1);
+      assert.equal(await page.evaluate(() => window.__translationRequests.length),
+        type === "GET_PUBLIC_SETTINGS" ? 0 : 1);
+      await page.close();
+    });
+  }
+});
+
 test("uses Chrome on-device translation when no OpenAI key is saved", {
   skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
 }, async () => {

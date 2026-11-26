@@ -11,9 +11,9 @@
   const inFlight = new Set();
   const translatedBodies = new Map();
   let scanTimer = null;
-  let publicSettings = null;
+  let publicSettingsRequest = null;
 
-  function sendMessage(message) {
+  async function sendMessage(message) {
     return api.runtime.sendMessage(message);
   }
 
@@ -54,6 +54,7 @@
   }
 
   function restoreOriginalComments() {
+    publicSettingsRequest = null;
     clearTimeout(scanTimer);
     for (const body of Array.from(translatedBodies.keys())) {
       releaseTranslatedBody(body);
@@ -135,18 +136,23 @@
     body.setAttribute("aria-description", message);
   }
 
-  async function loadSettings() {
-    if (!publicSettings) {
-      publicSettings = await sendMessage({ type: "GET_PUBLIC_SETTINGS" });
+  function loadSettings() {
+    if (!publicSettingsRequest) {
+      publicSettingsRequest = sendMessage({ type: "GET_PUBLIC_SETTINGS" });
     }
-    return publicSettings;
+    return publicSettingsRequest;
   }
 
   async function scan(manualBodies) {
     releaseStaleTranslations();
     const force = Boolean(manualBodies);
-    const settingsResponse = await loadSettings().catch(() => null);
+    const settingsRequest = loadSettings();
+    const settingsResponse = await settingsRequest.catch(() => null);
+    if (settingsRequest !== publicSettingsRequest) {
+      return;
+    }
     if (!settingsResponse || !settingsResponse.ok) {
+      publicSettingsRequest = null;
       return;
     }
     if (!settingsResponse.settings.autoTranslate && !force) {
@@ -168,7 +174,7 @@
         scheduleScan();
         return;
       }
-      if (publicSettings !== settingsResponse) {
+      if (publicSettingsRequest !== settingsRequest) {
         return;
       }
     }
@@ -210,6 +216,7 @@
     }
 
     const requestTexts = pending.map(({ id, text }) => ({ id, text }));
+    const settingsRequest = publicSettingsRequest;
     const response = provider === "on-device"
       ? await localTranslator.translateBatch(requestTexts, targetLanguage)
       : await sendMessage({
@@ -221,6 +228,10 @@
         error: { code: "EXTENSION_ERROR", message: "Translation failed." }
       }));
 
+    // A settings change or another manual run has already reset these bodies.
+    if (settingsRequest !== publicSettingsRequest) {
+      return;
+    }
     for (const item of pending) {
       inFlight.delete(item.hash);
     }
@@ -291,13 +302,11 @@
 
   api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "TRANSLATE_NOW") {
-      publicSettings = null;
       restoreOriginalComments();
       scan(findBodies(document)).then(() => sendResponse({ ok: true }));
       return true;
     }
     if (message && message.type === "SETTINGS_UPDATED") {
-      publicSettings = null;
       restoreOriginalComments();
       scheduleScan();
       sendResponse({ ok: true });
