@@ -170,9 +170,9 @@
   });
 
   translateNow.addEventListener("click", async () => {
-    setMessage("Translating visible comments...");
+    setMessage("Translating visible comments or chat messages...");
     const sent = await notifyContent("TRANSLATE_NOW");
-    setMessage(sent ? "Translation started." : "Open a Google Docs document first.", !sent);
+    setMessage(sent ? "Translation started." : "Open a Google Docs document or a Google Meet call first.", !sent);
   });
 
   load();

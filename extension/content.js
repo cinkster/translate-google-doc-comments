@@ -5,13 +5,15 @@
     ? global.browser
     : global.chrome;
   const lib = global.DCTContentLib;
+  const isMeet = global.location.hostname === "meet.google.com";
+  const findBodies = isMeet ? lib.findMeetMessageBodies : lib.findCommentBodies;
   const localTranslator = global.DCTLocalTranslator;
   const inFlight = new Set();
   const translatedBodies = new Map();
   let scanTimer = null;
-  let publicSettings = null;
+  let publicSettingsRequest = null;
 
-  function sendMessage(message) {
+  async function sendMessage(message) {
     return api.runtime.sendMessage(message);
   }
 
@@ -31,30 +33,32 @@
     }
   }
 
-  function releaseTranslatedBody(body, restoreOriginal) {
+  function releaseTranslatedBody(body) {
     const state = translatedBodies.get(body);
     if (!state) {
       return;
     }
 
     translatedBodies.delete(body);
+    if (state.output !== body) {
+      state.output.remove();
+      return;
+    }
     body.classList.remove("dct-translated-source");
     delete body.dataset.dctSourceHash;
     restoreTitle(body, state);
 
-    if (
-      restoreOriginal &&
-      body.isConnected &&
-      lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)
-    ) {
+    if (lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)) {
       body.textContent = state.originalText;
     }
   }
 
   function restoreOriginalComments() {
+    publicSettingsRequest = null;
     clearTimeout(scanTimer);
+    scanTimer = null;
     for (const body of Array.from(translatedBodies.keys())) {
-      releaseTranslatedBody(body, true);
+      releaseTranslatedBody(body);
     }
     for (const body of document.querySelectorAll("[data-dct-skipped-hash], [data-dct-error-hash]")) {
       delete body.dataset.dctSkippedHash;
@@ -66,17 +70,15 @@
     inFlight.clear();
   }
 
-  function translatedBodyIsCurrent(body) {
-    const state = translatedBodies.get(body);
-    if (!state) {
-      return false;
+  function releaseStaleTranslations() {
+    for (const [body, state] of translatedBodies) {
+      const inline = state.output === body;
+      const expected = inline ? state.translation : state.originalText;
+      if (!body.isConnected || (!inline && state.output.previousElementSibling !== body) ||
+          lib.normalizeText(body.textContent) !== lib.normalizeText(expected)) {
+        releaseTranslatedBody(body);
+      }
     }
-    if (lib.normalizeText(body.textContent) === lib.normalizeText(state.translation)) {
-      return true;
-    }
-
-    releaseTranslatedBody(body, false);
-    return false;
   }
 
   function clearStaleStatus(body, hash) {
@@ -102,11 +104,18 @@
     }
 
     delete body.dataset.dctSkippedHash;
+    // Keep the page's original links and event handlers in place.
+    const output = body.querySelector("a[href]") ? document.createElement("span") : body;
+    if (output !== body) {
+      output.classList.add("dct-translation");
+      body.after(output);
+    }
     const originalTitle = body.getAttribute("title") || "";
     const hoverOriginal = originalText.length > 2000
       ? `${originalText.slice(0, 2000)}...`
       : originalText;
     const state = {
+      output,
       originalText,
       translation,
       hadTitle: body.hasAttribute("title"),
@@ -114,10 +123,10 @@
     };
 
     translatedBodies.set(body, state);
-    body.classList.add("dct-translated-source");
-    body.dataset.dctSourceHash = hash;
-    body.setAttribute("title", `Original: ${hoverOriginal}`);
-    body.textContent = translation;
+    output.classList.add("dct-translated-source");
+    output.dataset.dctSourceHash = hash;
+    output.setAttribute("title", `Original: ${hoverOriginal}`);
+    output.textContent = translation;
   }
 
   function renderError(body, hash, message) {
@@ -128,17 +137,23 @@
     body.setAttribute("aria-description", message);
   }
 
-  async function loadSettings() {
-    if (!publicSettings) {
-      publicSettings = await sendMessage({ type: "GET_PUBLIC_SETTINGS" });
+  function loadSettings() {
+    if (!publicSettingsRequest) {
+      publicSettingsRequest = sendMessage({ type: "GET_PUBLIC_SETTINGS" });
     }
-    return publicSettings;
+    return publicSettingsRequest;
   }
 
-  async function scan(options = {}) {
-    const force = Boolean(options.force);
-    const settingsResponse = await loadSettings().catch(() => null);
+  async function scan(manualBodies) {
+    releaseStaleTranslations();
+    const force = Boolean(manualBodies);
+    const settingsRequest = loadSettings();
+    const settingsResponse = await settingsRequest.catch(() => null);
+    if (settingsRequest !== publicSettingsRequest) {
+      return;
+    }
     if (!settingsResponse || !settingsResponse.ok) {
+      publicSettingsRequest = null;
       return;
     }
     if (!settingsResponse.settings.autoTranslate && !force) {
@@ -146,12 +161,6 @@
     }
 
     const provider = settingsResponse.provider || (settingsResponse.configured ? "openai" : "on-device");
-    for (const body of Array.from(translatedBodies.keys())) {
-      if (!body.isConnected) {
-        translatedBodies.delete(body);
-      }
-    }
-
     const targetLanguage = settingsResponse.settings.targetLanguage;
     if (provider === "on-device" && (!localTranslator || !localTranslator.supports(targetLanguage))) {
       return;
@@ -160,10 +169,23 @@
       return;
     }
 
+    const bodies = manualBodies || findBodies(document);
+    while (await translateNextBatch(bodies, provider, targetLanguage, force)) {
+      if (!force) {
+        scheduleScan();
+        return;
+      }
+      if (publicSettingsRequest !== settingsRequest) {
+        return;
+      }
+    }
+  }
+
+  async function translateNextBatch(bodies, provider, targetLanguage, force) {
     const pending = [];
     let pendingCharacters = 0;
-    for (const body of lib.findCommentBodies(document)) {
-      if (translatedBodyIsCurrent(body)) {
+    for (const body of bodies) {
+      if (!body.isConnected || translatedBodies.has(body)) {
         continue;
       }
 
@@ -195,6 +217,7 @@
     }
 
     const requestTexts = pending.map(({ id, text }) => ({ id, text }));
+    const settingsRequest = publicSettingsRequest;
     const response = provider === "on-device"
       ? await localTranslator.translateBatch(requestTexts, targetLanguage)
       : await sendMessage({
@@ -206,25 +229,31 @@
         error: { code: "EXTENSION_ERROR", message: "Translation failed." }
       }));
 
+    // A settings change or another manual run has already reset these bodies.
+    if (settingsRequest !== publicSettingsRequest) {
+      return;
+    }
     for (const item of pending) {
       inFlight.delete(item.hash);
     }
+    const current = pending.filter(({ body, text }) =>
+      body.isConnected && !translatedBodies.has(body) && lib.normalizeText(body.textContent) === text);
 
     if (!response.ok) {
       if (response.error && response.error.code === "MISSING_API_KEY") {
-        for (const item of pending) {
+        for (const item of current) {
           clearBodyStatus(item.body);
         }
         return;
       }
       const message = response.error && response.error.message || "Translation failed.";
-      for (const item of pending) {
+      for (const item of current) {
         renderError(item.body, item.hash, message);
       }
       return;
     }
 
-    for (const item of pending) {
+    for (const item of current) {
       const translation = response.translations[item.id];
       renderTranslation(
         item.body,
@@ -234,16 +263,31 @@
       );
     }
 
-    scheduleScan();
+    return true;
   }
 
-  function scheduleScan(options = {}) {
-    clearTimeout(scanTimer);
-    scanTimer = setTimeout(() => scan(options), 450);
+  function scheduleScan() {
+    if (scanTimer !== null) return;
+    scanTimer = setTimeout(() => {
+      scanTimer = null;
+      void scan();
+    }, 450);
   }
 
   function mutationsNeedScan(mutations) {
     return mutations.some((mutation) => {
+      if (isMeet) {
+        if (Array.from(mutation.removedNodes).some((node) => translatedBodies.has(node))) {
+          return true;
+        }
+        const target = mutation.target.nodeType === Node.TEXT_NODE
+          ? mutation.target.parentElement
+          : mutation.target;
+        return target?.closest(lib.MEET_BODY_SELECTOR) || Array.from(mutation.addedNodes).some(
+          (node) => node.nodeType === Node.ELEMENT_NODE &&
+            (node.matches(lib.MEET_BODY_SELECTOR) || node.querySelector(lib.MEET_BODY_SELECTOR))
+        );
+      }
       if (mutation.type === "characterData") {
         return true;
       }
@@ -262,13 +306,11 @@
 
   api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message && message.type === "TRANSLATE_NOW") {
-      publicSettings = null;
       restoreOriginalComments();
-      scan({ force: true }).then(() => sendResponse({ ok: true }));
+      scan(findBodies(document)).then(() => sendResponse({ ok: true }));
       return true;
     }
     if (message && message.type === "SETTINGS_UPDATED") {
-      publicSettings = null;
       restoreOriginalComments();
       scheduleScan();
       sendResponse({ ok: true });

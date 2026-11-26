@@ -10,7 +10,10 @@ test("manifest is a narrowly scoped Manifest V3 extension", () => {
   assert.equal(manifest.manifest_version, 3);
   assert.deepEqual(manifest.permissions, ["storage"]);
   assert.deepEqual(manifest.host_permissions, ["https://api.openai.com/*"]);
-  assert.deepEqual(manifest.content_scripts[0].matches, ["https://docs.google.com/document/*"]);
+  assert.deepEqual(manifest.content_scripts[0].matches, [
+    "https://docs.google.com/document/*",
+    "https://meet.google.com/*"
+  ]);
 });
 
 test("every manifest resource exists", () => {
