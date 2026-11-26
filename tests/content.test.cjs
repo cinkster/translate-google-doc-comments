@@ -284,6 +284,33 @@ test("ignores late Meet responses after automatic translation is disabled", {
   }
 });
 
+test("translates Meet messages while a burst is still arriving", {
+  skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
+}, async (t) => {
+  const browser = await chromium.launch({ executablePath: chromeExecutable, headless: true });
+  t.after(() => browser.close());
+  const page = await openMeetFixture(browser);
+  await page.clock.install();
+  await loadContentScript(page);
+  await page.clock.runFor(1000);
+  await page.evaluate(() => {
+    const list = document.querySelector(".beTDc");
+    let count = 0;
+    const timer = setInterval(() => {
+      const row = document.createElement("div");
+      row.dataset.messageId = "burst-" + ++count;
+      row.innerHTML = '<div jsname="dTKtvb"><div>テスト ' + count + '</div></div>';
+      list.append(row);
+      if (count === 12) clearInterval(timer);
+    }, 100);
+  });
+  const translated = page.locator("[data-message-id^='burst-'] .dct-translated-source");
+  await page.clock.runFor(800);
+  assert.ok(await translated.count() > 0, "translation should start during the burst");
+  await page.clock.runFor(1200);
+  assert.equal(await translated.count(), 12);
+});
+
 test("uses Chrome on-device translation when no OpenAI key is saved", {
   skip: !fs.existsSync(chromeExecutable) && "Google Chrome is not installed"
 }, async () => {

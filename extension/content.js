@@ -56,6 +56,7 @@
   function restoreOriginalComments() {
     publicSettingsRequest = null;
     clearTimeout(scanTimer);
+    scanTimer = null;
     for (const body of Array.from(translatedBodies.keys())) {
       releaseTranslatedBody(body);
     }
@@ -266,8 +267,11 @@
   }
 
   function scheduleScan() {
-    clearTimeout(scanTimer);
-    scanTimer = setTimeout(scan, 450);
+    if (scanTimer !== null) return;
+    scanTimer = setTimeout(() => {
+      scanTimer = null;
+      void scan();
+    }, 450);
   }
 
   function mutationsNeedScan(mutations) {
