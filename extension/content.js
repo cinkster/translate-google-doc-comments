@@ -137,8 +137,8 @@
     return publicSettings;
   }
 
-  async function scan(options = {}) {
-    const force = Boolean(options.force);
+  async function scan(manualBodies) {
+    const force = Boolean(manualBodies);
     const settingsResponse = await loadSettings().catch(() => null);
     if (!settingsResponse || !settingsResponse.ok) {
       return;
@@ -162,10 +162,23 @@
       return;
     }
 
+    const bodies = manualBodies || findBodies(document);
+    while (await translateNextBatch(bodies, provider, targetLanguage, force)) {
+      if (!force) {
+        scheduleScan();
+        return;
+      }
+      if (publicSettings !== settingsResponse) {
+        return;
+      }
+    }
+  }
+
+  async function translateNextBatch(bodies, provider, targetLanguage, force) {
     const pending = [];
     let pendingCharacters = 0;
-    for (const body of findBodies(document)) {
-      if (translatedBodyIsCurrent(body)) {
+    for (const body of bodies) {
+      if (!body.isConnected || translatedBodyIsCurrent(body)) {
         continue;
       }
 
@@ -236,12 +249,12 @@
       );
     }
 
-    scheduleScan();
+    return true;
   }
 
-  function scheduleScan(options = {}) {
+  function scheduleScan() {
     clearTimeout(scanTimer);
-    scanTimer = setTimeout(() => scan(options), 450);
+    scanTimer = setTimeout(scan, 450);
   }
 
   function mutationsNeedScan(mutations) {
@@ -275,7 +288,7 @@
     if (message && message.type === "TRANSLATE_NOW") {
       publicSettings = null;
       restoreOriginalComments();
-      scan({ force: true }).then(() => sendResponse({ ok: true }));
+      scan(findBodies(document)).then(() => sendResponse({ ok: true }));
       return true;
     }
     if (message && message.type === "SETTINGS_UPDATED") {

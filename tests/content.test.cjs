@@ -166,11 +166,25 @@ test("translates only Meet chat bodies, including arriving messages", {
     });
     assert.equal(await translated.count(), 0);
     assert.equal(await page.getByText("これは日本語", { exact: true }).count(), 1);
-    await page.evaluate(() => new Promise((done) => {
-      window.__extensionListeners[0]({ type: "TRANSLATE_NOW" }, null, done);
-    }));
-    assert.equal(await translated.count(), 2);
-    assert.equal(await page.evaluate(() => window.__translationRequests.at(-1).force), true);
+    await page.evaluate(async () => {
+      const row = document.querySelector("[data-message-id='third']");
+      function appendMessage(index) {
+        const copy = row.cloneNode(true);
+        copy.dataset.messageId = String(index);
+        copy.querySelector("[jsname] > div").textContent = "メッセージ " + index;
+        row.parentElement.append(copy);
+      }
+      for (let i = 0; i < 22; i++) appendMessage(i);
+      const finished = new Promise((done) => {
+        window.__extensionListeners[0]({ type: "TRANSLATE_NOW" }, null, done);
+      });
+      appendMessage("late");
+      await finished;
+    });
+    assert.equal(await translated.count(), 24);
+    assert.equal(await page.locator("[data-message-id='late']").textContent(), "メッセージ late");
+    assert.deepEqual(await page.evaluate(() => window.__translationRequests
+      .filter((request) => request.force).map((request) => request.texts.length)), [20, 5]);
   } finally {
     await browser.close();
   }
