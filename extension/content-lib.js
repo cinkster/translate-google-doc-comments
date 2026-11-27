@@ -25,6 +25,8 @@
 
   // Meet puts the pin button alongside the message, under the same message ID.
   const MEET_BODY_SELECTOR = "[aria-live='polite'] div[data-message-id] [jsname='dTKtvb'] > div";
+  const CHAT_BODY_SELECTOR = "[data-topic-id] [jsname='bgckF']";
+  const EDITOR_SELECTOR = "[contenteditable]:not([contenteditable='false']), [role='textbox']";
 
   const BLOCKED_TAGS = new Set([
     "BUTTON", "INPUT", "TEXTAREA", "SELECT", "OPTION", "TIME", "IMG", "SVG"
@@ -63,7 +65,8 @@
     if (!element || BLOCKED_TAGS.has(element.tagName)) {
       return false;
     }
-    if (element.closest(".dct-translation, [contenteditable='true'], [role='button'], button")) {
+    if (element.closest(`.dct-translation, [role='button'], button, ${EDITOR_SELECTOR}`) ||
+        element.querySelector(EDITOR_SELECTOR)) {
       return false;
     }
     if (METADATA_CLASS.test(String(element.className || ""))) {
@@ -115,11 +118,12 @@
   global.DCTContentLib = {
     FALLBACK_BODY_SELECTOR,
     MEET_BODY_SELECTOR,
+    CHAT_BODY_SELECTOR,
     PRIMARY_BODY_SELECTOR,
     THREAD_SELECTOR,
     findCommentBodies,
-    findMeetMessageBodies(root) {
-      return Array.from(root.querySelectorAll(MEET_BODY_SELECTOR)).filter(isCandidate);
+    findMessageBodies(root, selector) {
+      return Array.from(root.querySelectorAll(selector)).filter(isCandidate);
     },
     fingerprint,
     normalizeText

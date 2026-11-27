@@ -24,6 +24,13 @@
         "content.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chat.google.com/embed/space/*"],
+      "all_frames": true,
+      "js": ["content-lib.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
     }
   ],
   "background": {

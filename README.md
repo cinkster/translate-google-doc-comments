@@ -34,6 +34,8 @@ If Chrome already loads the extension from your checkout, update the checkout an
 
 In a Meet call, choose **Chat with everyone** to open **In-call messages**. With **Translate automatically** enabled, the extension translates messages already in the panel and new messages as they arrive. For example, with English selected, `図書館は午後3時に開きます。` appears as “The library opens at 3 p.m.”
 
+This also works when the host enables continuous meeting chat. Allow access to `chat.google.com` if your browser asks. The extension reads posted messages from the Google Chat conversation embedded in Meet. Other participants still see the original messages.
+
 For manual translation, turn off **Translate automatically** in the popup and choose **Save**. Choose **Translate now** to translate the messages currently in the panel. Choose it again to include later messages.
 
 ## Safari
@@ -44,7 +46,7 @@ Safari Web Extensions require the full Xcode app for conversion and signing. Onc
 ./scripts/package-safari.sh
 ```
 
-Open the generated project in `Safari/Docs Comment Translator/Docs Comment Translator.xcodeproj`, select the macOS app target, and run it. Then enable **Docs Comment Translator** in Safari Settings > Extensions and allow access to the sites where you want translation (`docs.google.com` or `meet.google.com`).
+Open the generated project in `Safari/Docs Comment Translator/Docs Comment Translator.xcodeproj`, select the macOS app target, and run it. Then enable **Docs Comment Translator** in Safari Settings > Extensions and allow access to the sites where you want translation (`docs.google.com` or `meet.google.com`, plus `chat.google.com` for continuous meeting chat).
 
 The current machine has the Command Line Tools but not full Xcode, so the Safari host project cannot be generated until Xcode is available.
 

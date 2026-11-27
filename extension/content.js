@@ -6,7 +6,19 @@
     : global.chrome;
   const lib = global.DCTContentLib;
   const isMeet = global.location.hostname === "meet.google.com";
-  const findBodies = isMeet ? lib.findMeetMessageBodies : lib.findCommentBodies;
+  const isChatEmbed = global.location.hostname === "chat.google.com";
+  let messageSelector;
+  if (isChatEmbed) {
+    // This URL also opens on its own and can be embedded by other Google apps.
+    const ancestors = global.location.ancestorOrigins;
+    if (ancestors?.length !== 1 || ancestors[0] !== "https://meet.google.com") return;
+    messageSelector = lib.CHAT_BODY_SELECTOR;
+  } else if (isMeet) {
+    messageSelector = lib.MEET_BODY_SELECTOR;
+  }
+  const findBodies = messageSelector
+    ? (root) => lib.findMessageBodies(root, messageSelector)
+    : lib.findCommentBodies;
   const localTranslator = global.DCTLocalTranslator;
   const inFlight = new Set();
   const translatedBodies = new Map();
@@ -162,7 +174,7 @@
 
     const provider = settingsResponse.provider || (settingsResponse.configured ? "openai" : "on-device");
     const targetLanguage = settingsResponse.settings.targetLanguage;
-    if (provider === "on-device" && (!localTranslator || !localTranslator.supports(targetLanguage))) {
+    if (provider === "on-device" && !isChatEmbed && !localTranslator?.supports(targetLanguage)) {
       return;
     }
     if (provider === "openai" && !settingsResponse.configured) {
@@ -218,10 +230,12 @@
 
     const requestTexts = pending.map(({ id, text }) => ({ id, text }));
     const settingsRequest = publicSettingsRequest;
-    const response = provider === "on-device"
+    const onDevice = provider === "on-device";
+    const response = onDevice && !isChatEmbed
       ? await localTranslator.translateBatch(requestTexts, targetLanguage)
       : await sendMessage({
-        type: "TRANSLATE_COMMENTS",
+        type: onDevice ? "TRANSLATE_CHAT_ON_DEVICE" : "TRANSLATE_COMMENTS",
+        targetLanguage,
         force,
         texts: requestTexts
       }).catch(() => ({
@@ -276,16 +290,16 @@
 
   function mutationsNeedScan(mutations) {
     return mutations.some((mutation) => {
-      if (isMeet) {
+      if (messageSelector) {
         if (Array.from(mutation.removedNodes).some((node) => translatedBodies.has(node))) {
           return true;
         }
         const target = mutation.target.nodeType === Node.TEXT_NODE
           ? mutation.target.parentElement
           : mutation.target;
-        return target?.closest(lib.MEET_BODY_SELECTOR) || Array.from(mutation.addedNodes).some(
+        return target?.closest(messageSelector) || Array.from(mutation.addedNodes).some(
           (node) => node.nodeType === Node.ELEMENT_NODE &&
-            (node.matches(lib.MEET_BODY_SELECTOR) || node.querySelector(lib.MEET_BODY_SELECTOR))
+            (node.matches(messageSelector) || node.querySelector(messageSelector))
         );
       }
       if (mutation.type === "characterData") {
@@ -305,6 +319,10 @@
   }
 
   api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (isMeet && message?.type === "TRANSLATE_CHAT_ON_DEVICE") {
+      localTranslator.translateBatch(message.texts, message.targetLanguage).then(sendResponse);
+      return true;
+    }
     if (message && message.type === "TRANSLATE_NOW") {
       restoreOriginalComments();
       scan(findBodies(document)).then(() => sendResponse({ ok: true }));
