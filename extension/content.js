@@ -56,7 +56,7 @@
       state.output.remove();
       return;
     }
-    body.classList.remove("dct-translated-source");
+    body.classList.remove("dct-translated-source", "dct-docs-translation");
     delete body.dataset.dctSourceHash;
     restoreTitle(body, state);
 
@@ -136,6 +136,9 @@
 
     translatedBodies.set(body, state);
     output.classList.add("dct-translated-source");
+    if (!messageSelector) {
+      output.classList.add("dct-docs-translation");
+    }
     output.dataset.dctSourceHash = hash;
     output.setAttribute("title", `Original: ${hoverOriginal}`);
     output.textContent = translation;

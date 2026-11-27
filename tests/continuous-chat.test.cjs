@@ -51,6 +51,27 @@ test("the unpacked extension translates continuous chat only inside Meet", {
   assert.equal(await translation.getAttribute("title"), "Original: 窓を開けます。");
   assert.deepEqual(await worker.evaluate(() => requestedTexts), ["窓を開けます。"]);
 
+  for (const colorScheme of ["dark", "light"]) {
+    await page.emulateMedia({ colorScheme });
+    const style = await translation.evaluate((body) => {
+      const css = getComputedStyle(body);
+      return {
+        color: css.color,
+        background: css.backgroundColor,
+        padding: css.padding,
+        border: css.borderLeftWidth,
+        margin: css.marginTop
+      };
+    });
+    assert.deepEqual(style, {
+      color: colorScheme === "dark" ? "rgb(227, 227, 227)" : "rgb(32, 33, 36)",
+      background: "rgba(0, 0, 0, 0)",
+      padding: "0px",
+      border: "0px",
+      margin: "0px"
+    }, `translated messages keep the native ${colorScheme} bubble`);
+  }
+
   await chat.locator("main").evaluate((list) => {
     const topic = document.createElement("c-wiz");
     topic.dataset.topicId = "new";
