@@ -157,7 +157,7 @@ importScripts("background-lib.js");
     };
   }
 
-  async function handleMessage(message) {
+  async function handleMessage(message, sender) {
     switch (message && message.type) {
       case "GET_SETTINGS": {
         const settings = await getStoredSettings();
@@ -181,13 +181,25 @@ importScripts("background-lib.js");
         return saveSettings(message);
       case "TRANSLATE_COMMENTS":
         return translateComments(message);
+      case "TRANSLATE_CHAT_ON_DEVICE": {
+        // Chrome exposes its Translator API in the Meet document. Keep this batch in the same tab.
+        if (!sender.tab?.id || !(sender.frameId > 0) ||
+            !sender.url?.startsWith("https://chat.google.com/embed/space/")) {
+          throw new Error("Expected an embedded Meet chat.");
+        }
+        return api.tabs.sendMessage(sender.tab.id, {
+          type: message.type,
+          texts: validateTexts(message.texts),
+          targetLanguage: message.targetLanguage
+        }, { frameId: 0 });
+      }
       default:
         return { ok: false, error: { code: "UNKNOWN_MESSAGE", message: "Unknown request." } };
     }
   }
 
-  api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    handleMessage(message)
+  api.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    handleMessage(message, sender)
       .then(sendResponse)
       .catch((error) => sendResponse({
         ok: false,

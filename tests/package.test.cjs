@@ -14,6 +14,9 @@ test("manifest is a narrowly scoped Manifest V3 extension", () => {
     "https://docs.google.com/document/*",
     "https://meet.google.com/*"
   ]);
+  assert.equal(Boolean(manifest.content_scripts[0].all_frames), false);
+  assert.deepEqual(manifest.content_scripts[1].matches, ["https://chat.google.com/embed/space/*"]);
+  assert.equal(manifest.content_scripts[1].all_frames, true);
 });
 
 test("every manifest resource exists", () => {

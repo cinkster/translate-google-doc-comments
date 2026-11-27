@@ -4,7 +4,16 @@
 }
 
 .dct-translated-source {
+  cursor: help;
+  overflow-wrap: anywhere;
+}
+
+.dct-translation,
+.dct-docs-translation {
   display: block;
+}
+
+.dct-docs-translation {
   margin-top: 7px;
   padding: 7px 9px 8px;
   border: 1px solid #c7d7cc;
@@ -12,8 +21,6 @@
   border-radius: 6px;
   background: #f7fbf8;
   color: #202124;
-  cursor: help;
-  overflow-wrap: anywhere;
 }
 
 .dct-translation-error {
